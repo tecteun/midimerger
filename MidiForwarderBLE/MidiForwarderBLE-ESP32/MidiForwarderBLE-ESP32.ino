@@ -1,4 +1,4 @@
-
+#include <Preferences.h>
 #include <MIDI.h>
 #include <BLEMIDI_Transport.h>
 
@@ -28,18 +28,25 @@ bool bleClientMode = false;
 bool toggle = false;
 bool isConnected = false;
 bool isClientConnected = false;
+Preferences preferences;
 
-
-void IRAM_ATTR toggleLED() {
-  bleClientMode = !bleClientMode;
+void toggleLED() {
   digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
 }
 
-void setup() {
-  //Serial.begin(115200);
+void IRAM_ATTR toggleBleClientMaster() {
+  
+  bleClientMode = !bleClientMode;
+  preferences.putBool("bleclientmode", bleClientMode);
+  toggleLED();
+}
 
+void setup() {
+  preferences.begin("my-app", false);
+  //Serial.begin(115200);
+  bleClientMode = preferences.getBool("bleclientmode", false);
   pinMode(ONBOARD_BUTTON_LABELED_BOOT, INPUT_PULLUP);
-  attachInterrupt(ONBOARD_BUTTON_LABELED_BOOT, toggleLED, RISING);
+  attachInterrupt(ONBOARD_BUTTON_LABELED_BOOT, toggleBleClientMaster, RISING);
 
   // Serial2 (GPIO 16 & 17) for hardware-midi in/out
   // only 2 is connected
@@ -83,18 +90,18 @@ void setup() {
 
 
 void loop() {
-  if(bleClientMode){
+  if (bleClientMode) {
     if (midiBleClient.read()) {
-      digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
+      toggleLED();
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
       midi::DataByte d2 = midiBleClient.getData2();
       midi::Channel c = midiBleClient.getChannel();
       midiA.send(t, d1, d2, c);
     }
-  }else{
+  } else {
     if (midiBle.read()) {
-      digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
+      toggleLED();
       midi::MidiType t = midiBle.getType();
       midi::DataByte d1 = midiBle.getData1();
       midi::DataByte d2 = midiBle.getData2();
@@ -103,17 +110,20 @@ void loop() {
     }
   }
   if (midiA.read()) {
-    digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
+    toggleLED();
     midi::MidiType t = midiA.getType();
     midi::DataByte d1 = midiA.getData1();
     midi::DataByte d2 = midiA.getData2();
     midi::Channel c = midiA.getChannel();
     //if(t != midi::SystemExclusive){
-
-    if (isConnected) {
-      midiBle.send(t, d1, d2, c);
+    if (bleClientMode) {
+      midiBleClient.send(t, d1, d2, c);
+    } else {
+      if (isConnected) {
+        midiBle.send(t, d1, d2, c);
+      }
     }
-    midiBleClient.send(t, d1, d2, c);
+
 
     //}
   }
