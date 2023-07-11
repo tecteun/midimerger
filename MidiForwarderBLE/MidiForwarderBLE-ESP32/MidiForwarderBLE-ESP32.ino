@@ -36,7 +36,7 @@ void IRAM_ATTR toggleLED() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   pinMode(ONBOARD_BUTTON_LABELED_BOOT, INPUT_PULLUP);
   attachInterrupt(ONBOARD_BUTTON_LABELED_BOOT, toggleLED, RISING);
@@ -84,7 +84,7 @@ void setup() {
 
 void loop() {
   if(bleClientMode){
-    while (midiBleClient.read()) {
+    if (midiBleClient.read()) {
       digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
@@ -93,7 +93,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   }else{
-    while (midiBle.read()) {
+    if (midiBle.read()) {
       digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
       midi::MidiType t = midiBle.getType();
       midi::DataByte d1 = midiBle.getData1();
@@ -102,7 +102,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   }
-  while (midiA.read()) {
+  if (midiA.read()) {
     digitalWrite(ONBOARD_LED, toggle = !toggle ? HIGH : LOW);
     midi::MidiType t = midiA.getType();
     midi::DataByte d1 = midiA.getData1();
