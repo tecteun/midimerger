@@ -45,6 +45,7 @@ unsigned long previousMillis = 0;  // will store last time LED was updated
 int pwm = -1;
 int pwmValue = 10;
 int ledbrightness = 5;
+bool showLeds = false;
 bool toggle = false;
 
 void send_uhs(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
@@ -73,15 +74,20 @@ void eurorack_trigger() {
 }
 
 void setup() {
-  pinMode(5, OUTPUT);  // Blue Pin
-  pinMode(6, OUTPUT);  // Green Pin
-  pinMode(7, OUTPUT);  // Red Pin
-  analogWrite(5, 2);
-  analogWrite(6, 2);
-  analogWrite(7, 2);
+
+
   // interrupts
   pinMode(EURORACK_TRIGGER_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(EURORACK_TRIGGER_INTERRUPT_PIN), eurorack_trigger, CHANGE);  //LOW RISING FALLING
+
+  pinMode(4, OUTPUT);  // Blue Pin
+  pinMode(5, OUTPUT);  // Green Pin
+  pinMode(6, OUTPUT);  // brightness
+  pinMode(7, OUTPUT);  // Red Pin
+  analogWrite(4, 40);
+  analogWrite(5, 40);
+  digitalWrite(6, HIGH);
+  analogWrite(7, 40);
 
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
@@ -105,28 +111,43 @@ void setup() {
       ;  //halt
   }      //if (Usb.Init() == -1...
   delay(200);
-}
 
+}
+void flashLed(int id){
+  if(showLeds){
+    analogWrite(id, ledbrightness += ledbrightness);
+    digitalWrite(LED_BUILTIN, toggle = !toggle ? LOW : HIGH);
+  }
+}
 void loop() {
   Usb.Task();
   
   unsigned long currentMillis = millis();
-  
-  if (currentMillis - previousMillis >= 100) {
-    previousMillis = currentMillis;
-    analogWrite(7, pwmValue = pwmValue + pwm);
-    if (pwmValue <= 0 || pwmValue > 10) {
-      pwm *= -1;
-    }
-    analogWrite(6, 0);
-    analogWrite(5, 0);
-    ledbrightness = 5;
+  switch(showLeds){
+    case false:
+      if (currentMillis - previousMillis >= 3000) {
+        previousMillis = currentMillis;
+        showLeds = true;
+        digitalWrite(6, LOW);
+      }
+    break;
+    case true:
+      if (currentMillis - previousMillis >= 100) {
+        previousMillis = currentMillis;
+        analogWrite(7, pwmValue = pwmValue + pwm);
+        if (pwmValue <= 0 || pwmValue > 10) {
+          pwm *= -1;
+        }
+        analogWrite(5, 0);
+        analogWrite(4, 0);
+        ledbrightness = 5;
+      }
+    break;
   }
 
   for (int c = 0; c < MIDI_SERIAL_DEVICE_COUNT; c++) {
     if (list_devices_serial[c]->read()) {
-      analogWrite(5, ledbrightness += ledbrightness);
-      digitalWrite(LED_BUILTIN, toggle = !toggle ? LOW : HIGH);
+      flashLed(4);
       midi::MidiType t = list_devices_serial[c]->getType();
       midi::DataByte d1 = list_devices_serial[c]->getData1();
       midi::DataByte d2 = list_devices_serial[c]->getData2();
@@ -137,8 +158,7 @@ void loop() {
   }
   for (int c = 0; c < MIDI_UHS2_DEVICE_COUNT; c++) {
     if (list_devices_uhs2[c]->read()) {
-      analogWrite(6, ledbrightness += ledbrightness);
-      digitalWrite(LED_BUILTIN, toggle = !toggle ? LOW : HIGH);
+      flashLed(5);
       midi::MidiType t = list_devices_uhs2[c]->getType();
       midi::DataByte d1 = list_devices_uhs2[c]->getData1();
       midi::DataByte d2 = list_devices_uhs2[c]->getData2();
