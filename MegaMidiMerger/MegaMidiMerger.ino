@@ -39,6 +39,12 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
 
 #define EURORACK_TRIGGER_INTERRUPT_PIN 2
 
+
+unsigned long previousMillis = 0;  // will store last time LED was updated
+
+int pwm = -1;
+int pwmValue = 10;
+int ledbrightness = 5;
 bool toggle = false;
 
 void send_uhs(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
@@ -58,6 +64,7 @@ void send_serial(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::C
 }
 
 void eurorack_trigger() {
+  analogWrite(6, ledbrightness += ledbrightness);
   send_serial(midi::NoteOn, 42, 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
   send_uhs(midi::NoteOn, 42, 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
   delay(1000);                            // Wait for a second
@@ -100,11 +107,6 @@ void setup() {
   delay(200);
 }
 
-unsigned long previousMillis = 0;  // will store last time LED was updated
-
-int pwm = -1;
-int pwmValue = 10;
-int ledbrightness = 5;
 void loop() {
   Usb.Task();
   
