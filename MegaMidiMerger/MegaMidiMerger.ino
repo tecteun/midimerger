@@ -37,8 +37,39 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
   &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9
 };
 
+#define EURORACK_TRIGGER_INTERRUPT_PIN 2
+
 bool toggle = false;
+
+void send_uhs( midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
+  for (int i = 0; i < MIDI_UHS2_DEVICE_COUNT; i++) {
+    if (exclude != i) {  // do not send to self, no passthrough
+      list_devices_uhs2[i]->send(t, d1, d2, ch);
+    }
+  }
+}
+
+void send_serial(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
+  for (int i = 0; i < MIDI_SERIAL_DEVICE_COUNT; i++) {
+    if (exclude != i) {  // do not send to self, no passthrough
+      list_devices_serial[i]->send(t, d1, d2, ch);
+    }
+  }
+}
+
+void eurorack_trigger() {
+  send_serial(midi::NoteOn, 42, 127, 1);    // Send a Note (pitch 42, velo 127 on channel 1)
+  send_uhs(midi::NoteOn, 42, 127, 1);    // Send a Note (pitch 42, velo 127 on channel 1)
+  delay(1000);		            // Wait for a second
+  send_serial(midi::NoteOff, 42, 0, 1);    // Send a NoteOff (pitch 42, velo 0 on channel 1)
+  send_uhs(midi::NoteOff, 42, 0, 1);    // Send a NoteOff (pitch 42, velo 0 on channel 1) 
+}
+
 void setup() {
+  // interrupts
+  pinMode(EURORACK_TRIGGER_INTERRUPT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(EURORACK_TRIGGER_INTERRUPT_PIN), eurorack_trigger, CHANGE);  //LOW RISING FALLING
+
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
   pinMode(1, INPUT);  // Arduino TX - ATMEGA8U2 RX
@@ -57,7 +88,8 @@ void setup() {
   }
 
   if (Usb.Init() == -1) {
-    while (1);  //halt
+    while (1)
+      ;  //halt
   }      //if (Usb.Init() == -1...
   delay(200);
 }
@@ -71,14 +103,8 @@ void loop() {
       midi::DataByte d1 = list_devices_serial[c]->getData1();
       midi::DataByte d2 = list_devices_serial[c]->getData2();
       midi::Channel ch = list_devices_serial[c]->getChannel();
-      for (int i = 0; i < MIDI_SERIAL_DEVICE_COUNT; i++) {
-        if (c == i) {  // do not send to self, no passthrough
-          list_devices_serial[i]->send(t, d1, d2, ch);
-        }
-      }
-      for (int i = 0; i < MIDI_UHS2_DEVICE_COUNT; i++) {
-        list_devices_uhs2[i]->send(t, d1, d2, ch);
-      }
+      send_serial(t, d1, d2, ch, c); // do not send to self, no passthrough
+      send_uhs(t, d1, d2, ch);
     }
   }
   for (int c = 0; c < MIDI_UHS2_DEVICE_COUNT; c++) {
@@ -88,14 +114,8 @@ void loop() {
       midi::DataByte d1 = list_devices_uhs2[c]->getData1();
       midi::DataByte d2 = list_devices_uhs2[c]->getData2();
       midi::Channel ch = list_devices_uhs2[c]->getChannel();
-      for (int i = 0; i < MIDI_SERIAL_DEVICE_COUNT; i++) {
-        list_devices_serial[i]->send(t, d1, d2, ch);
-      }
-      for (int i = 0; i < MIDI_UHS2_DEVICE_COUNT; i++) {
-        if (c == i) {  // do not send to self, no passthrough
-          list_devices_uhs2[i]->send(t, d1, d2, ch);
-        }
-      }
+      send_serial(t, d1, d2, ch); 
+      send_uhs(t, d1, d2, ch, c); // do not send to self, no passthrough
     }
   }
 }
