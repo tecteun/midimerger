@@ -51,12 +51,11 @@ void setup() {
   attachInterrupt(ONBOARD_BUTTON_LABELED_BOOT, toggleBleClientMaster, RISING);
 
   // Serial2 (GPIO 16 & 17) for hardware-midi in/out
-  // only 2 is connected
-  // midiB is RX
-  // midiA is Tx
   Serial2.begin(MIDI_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  Serial2.setRxBufferSize(1024);
   // fix for rx pin not pulling up..
   //pinMode(RXD2, INPUT_PULLUP);
+  //pinMode(TXD2, INPUT_PULLUP);
   pinMode(ONBOARD_LED, OUTPUT);
   // Initiate MIDI communications, listen to all channels
   midiA.begin(MIDI_CHANNEL_OMNI);
@@ -107,7 +106,7 @@ void loop() {
     toggleLED();
   }
   if (bleClientMode) {
-    while (midiBleClient.read()) {
+    if (midiBleClient.read()) {
       toggleLED();
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
@@ -116,7 +115,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   } else {
-    while (midiBle.read()) {
+    if (midiBle.read()) {
       toggleLED();
       midi::MidiType t = midiBle.getType();
       midi::DataByte d1 = midiBle.getData1();
@@ -125,7 +124,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   }
-  while (midiA.read()) {
+  if (midiA.read()) {
     toggleLED();
     midi::MidiType t = midiA.getType();
     midi::DataByte d1 = midiA.getData1();

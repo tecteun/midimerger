@@ -42,9 +42,9 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 
-int pwm = -1;
-int pwmValue = 10;
-int ledbrightness = 5;
+int pwm = 16;
+int pwmValue = 0;
+int ledbrightness = 32;
 bool showLeds = false;
 bool toggle = false;
 
@@ -84,10 +84,11 @@ void setup() {
   pinMode(5, OUTPUT);  // Green Pin
   pinMode(6, OUTPUT);  // brightness
   pinMode(7, OUTPUT);  // Red Pin
-  analogWrite(4, 40);
-  analogWrite(5, 40);
-  digitalWrite(6, HIGH);
-  analogWrite(7, 40);
+  analogWrite(4, 0);
+  analogWrite(5, 0);
+  //digitalWrite(6, HIGH);
+  analogWrite(6, 255);
+  analogWrite(7, 0);
 
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
@@ -115,7 +116,7 @@ void setup() {
 }
 void flashLed(int id){
   if(showLeds){
-    analogWrite(id, ledbrightness += ledbrightness);
+    analogWrite(id, max(255, ledbrightness += ledbrightness));
     digitalWrite(LED_BUILTIN, toggle = !toggle ? LOW : HIGH);
   }
 }
@@ -128,19 +129,20 @@ void loop() {
       if (currentMillis - previousMillis >= 3000) {
         previousMillis = currentMillis;
         showLeds = true;
-        digitalWrite(6, LOW);
+        //digitalWrite(6, LOW);
+        analogWrite(6, 128);
       }
     break;
     case true:
       if (currentMillis - previousMillis >= 100) {
         previousMillis = currentMillis;
         analogWrite(7, pwmValue = pwmValue + pwm);
-        if (pwmValue <= 0 || pwmValue > 10) {
+        if (pwmValue <= 0 || pwmValue >= 254) {
           pwm *= -1;
         }
         analogWrite(5, 0);
         analogWrite(4, 0);
-        ledbrightness = 5;
+        ledbrightness = 32;
       }
     break;
   }
