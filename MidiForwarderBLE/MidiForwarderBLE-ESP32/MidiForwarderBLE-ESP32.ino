@@ -69,11 +69,7 @@ void setup() {
     midiBle.turnThruOff();
   }
   midiA.turnThruOff();
-
-
   //midiMonitor.turnThruOff();
-
-
 
   xTaskCreatePinnedToCore(ReadCB,  //See FreeRTOS for more multitask info
                           "MIDI-READ",
@@ -82,6 +78,7 @@ void setup() {
                           1,
                           NULL,
                           1);  //Core0 or Core1
+                          
 }
 
 
@@ -110,7 +107,7 @@ void loop() {
     toggleLED();
   }
   if (bleClientMode) {
-    if (midiBleClient.read()) {
+    while (midiBleClient.read()) {
       toggleLED();
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
@@ -119,7 +116,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   } else {
-    if (midiBle.read()) {
+    while (midiBle.read()) {
       toggleLED();
       midi::MidiType t = midiBle.getType();
       midi::DataByte d1 = midiBle.getData1();
@@ -128,7 +125,7 @@ void loop() {
       midiA.send(t, d1, d2, c);
     }
   }
-  if (midiA.read()) {
+  while (midiA.read()) {
     toggleLED();
     midi::MidiType t = midiA.getType();
     midi::DataByte d1 = midiA.getData1();
@@ -140,11 +137,8 @@ void loop() {
     } else {
       midiBle.send(t, d1, d2, c);
     }
-
-
-    //}
   }
-  vTaskDelay(1 / portTICK_PERIOD_MS);
+  vTaskDelay(1 / portTICK_PERIOD_MS);  //Feed the watchdog of FreeRTOS.
 }
 /**
  * This function is called by xTaskCreatePinnedToCore() to perform a multitask execution.
