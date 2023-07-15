@@ -25,6 +25,7 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, midiA);
 #define RXD1 0
 #define TXD1 4
 bool bleClientMode = false;
+bool bleClientModeChanged = false;
 bool toggle = false;
 bool isConnected = false;
 bool isClientConnected = false;
@@ -39,6 +40,8 @@ void IRAM_ATTR toggleBleClientMaster() {
   bleClientMode = !bleClientMode;
   preferences.putBool("bleclientmode", bleClientMode);
   toggleLED();
+  bleClientModeChanged = true;
+
 }
 
 void setup() {
@@ -53,28 +56,23 @@ void setup() {
   // midiB is RX
   // midiA is Tx
   Serial2.begin(MIDI_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  // fix for rx pin not pulling up..
   //pinMode(RXD2, INPUT_PULLUP);
   pinMode(ONBOARD_LED, OUTPUT);
   // Initiate MIDI communications, listen to all channels
   midiA.begin(MIDI_CHANNEL_OMNI);
   //midiMonitor.begin(MIDI_CHANNEL_OMNI);
-  midiBle.begin(MIDI_CHANNEL_OMNI);
-  midiBleClient.begin(MIDI_CHANNEL_OMNI);
+  if(bleClientMode){
+    midiBleClient.begin(MIDI_CHANNEL_OMNI);
+    midiBleClient.turnThruOff();
+  }else{
+    midiBle.begin(MIDI_CHANNEL_OMNI);
+    midiBle.turnThruOff();
+  }
   midiA.turnThruOff();
-  midiBle.turnThruOff();
+  
+  
   //midiMonitor.turnThruOff();
-  BLEmidiBle.setHandleConnected([]() {
-    isConnected = true;
-    digitalWrite(LED_BUILTIN, HIGH);
-  });
-
-  BLEmidiBle.setHandleDisconnected([]() {
-    isConnected = false;
-    digitalWrite(LED_BUILTIN, LOW);
-    //BLEmidiBle.end();
-    //BLEmidiBle.begin();
-  });
-
 
 
   /*
@@ -90,9 +88,33 @@ void setup() {
 
 
 void loop() {
+  if(bleClientModeChanged){
+    bleClientModeChanged = false;
+    if(bleClientMode){
+      BLEmidiBle.endTransmission();
+      BLEmidiBle.end();
+      midiBleClient.begin(MIDI_CHANNEL_OMNI);
+      midiBleClient.turnThruOff();
+    }else{
+      
+      BLEmidiBleClient.endTransmission();
+      BLEmidiBleClient.end();
+      midiBle.begin(MIDI_CHANNEL_OMNI);
+      midiBle.turnThruOff();
+    }
+    toggleLED();
+    delay(20);
+    toggleLED();
+    delay(20);
+    toggleLED();
+    delay(20);
+    toggleLED();
+    delay(20);
+    toggleLED();
+  }
   if (bleClientMode) {
     if (midiBleClient.read()) {
-      toggleLED();
+      
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
       midi::DataByte d2 = midiBleClient.getData2();
@@ -119,14 +141,14 @@ void loop() {
     if (bleClientMode) {
       midiBleClient.send(t, d1, d2, c);
     } else {
-      if (isConnected) {
-        midiBle.send(t, d1, d2, c);
-      }
+      midiBle.send(t, d1, d2, c);
+      
     }
 
 
     //}
   }
+  vTaskDelay(1 / portTICK_PERIOD_MS); 
 }
 /**
  * This function is called by xTaskCreatePinnedToCore() to perform a multitask execution.
