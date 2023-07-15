@@ -36,12 +36,11 @@ void toggleLED() {
 }
 
 void IRAM_ATTR toggleBleClientMaster() {
-  
+
   bleClientMode = !bleClientMode;
   preferences.putBool("bleclientmode", bleClientMode);
   toggleLED();
   bleClientModeChanged = true;
-
 }
 
 void setup() {
@@ -62,20 +61,20 @@ void setup() {
   // Initiate MIDI communications, listen to all channels
   midiA.begin(MIDI_CHANNEL_OMNI);
   //midiMonitor.begin(MIDI_CHANNEL_OMNI);
-  if(bleClientMode){
+  if (bleClientMode) {
     midiBleClient.begin(MIDI_CHANNEL_OMNI);
     midiBleClient.turnThruOff();
-  }else{
+  } else {
     midiBle.begin(MIDI_CHANNEL_OMNI);
     midiBle.turnThruOff();
   }
   midiA.turnThruOff();
-  
-  
+
+
   //midiMonitor.turnThruOff();
 
 
-  /*
+
   xTaskCreatePinnedToCore(ReadCB,  //See FreeRTOS for more multitask info
                           "MIDI-READ",
                           3000,
@@ -83,38 +82,36 @@ void setup() {
                           1,
                           NULL,
                           1);  //Core0 or Core1
-           */
 }
 
 
 void loop() {
-  if(bleClientModeChanged){
+  if (bleClientModeChanged) {
     bleClientModeChanged = false;
-    if(bleClientMode){
+    if (bleClientMode) {
       BLEmidiBle.endTransmission();
       BLEmidiBle.end();
       midiBleClient.begin(MIDI_CHANNEL_OMNI);
       midiBleClient.turnThruOff();
-    }else{
-      
+    } else {
       BLEmidiBleClient.endTransmission();
       BLEmidiBleClient.end();
       midiBle.begin(MIDI_CHANNEL_OMNI);
       midiBle.turnThruOff();
     }
     toggleLED();
-    delay(20);
+    delay(200);
     toggleLED();
-    delay(20);
+    delay(200);
     toggleLED();
-    delay(20);
+    delay(200);
     toggleLED();
-    delay(20);
+    delay(200);
     toggleLED();
   }
   if (bleClientMode) {
     if (midiBleClient.read()) {
-      
+      toggleLED();
       midi::MidiType t = midiBleClient.getType();
       midi::DataByte d1 = midiBleClient.getData1();
       midi::DataByte d2 = midiBleClient.getData2();
@@ -142,13 +139,12 @@ void loop() {
       midiBleClient.send(t, d1, d2, c);
     } else {
       midiBle.send(t, d1, d2, c);
-      
     }
 
 
     //}
   }
-  vTaskDelay(1 / portTICK_PERIOD_MS); 
+  vTaskDelay(1 / portTICK_PERIOD_MS);
 }
 /**
  * This function is called by xTaskCreatePinnedToCore() to perform a multitask execution.
@@ -158,7 +154,9 @@ void ReadCB(void *parameter) {
   //  Serial.print("READ Task is started on core: ");
   //  Serial.println(xPortGetCoreID());
   for (;;) {
-
+    if (bleClientMode && BLEmidiBleClient.available() > 0) {
+      BLEmidiBleClient.read();
+    }
     vTaskDelay(1 / portTICK_PERIOD_MS);  //Feed the watchdog of FreeRTOS.
                                          //BLEmidiBle
     //Serial.println(uxTaskGetStackHighWaterMark(NULL)); //Only for debug. You can see the watermark of the free resources assigned by the xTaskCreatePinnedToCore() function.
