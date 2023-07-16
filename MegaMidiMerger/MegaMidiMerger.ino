@@ -12,15 +12,15 @@ USB Usb;
 // support one hub, four midi devices
 USBHub Hub(&Usb);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb1);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb2);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 3, midiUsb3);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 4, midiUsb4);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 5, midiUsb5);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 6, midiUsb6);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 7, midiUsb7);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 8, midiUsb8);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 9, midiUsb9);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb1);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb2);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb3);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb4);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb5);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb6);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb7);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb8);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb9);
 #define MIDI_UHS2_DEVICE_COUNT 10
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
@@ -42,10 +42,6 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 
-int pwm = 16;
-int pwmValue = 0;
-int ledbrightness = 32;
-bool showLeds = false;
 bool toggle = false;
 
 void send_uhs(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
@@ -65,7 +61,6 @@ void send_serial(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::C
 }
 
 void eurorack_trigger() {
-  analogWrite(6, ledbrightness += ledbrightness);
   send_serial(midi::NoteOn, 42, 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
   send_uhs(midi::NoteOn, 42, 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
   delay(1000);                            // Wait for a second
@@ -74,21 +69,9 @@ void eurorack_trigger() {
 }
 
 void setup() {
-
-
   // interrupts
   pinMode(EURORACK_TRIGGER_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(EURORACK_TRIGGER_INTERRUPT_PIN), eurorack_trigger, CHANGE);  //LOW RISING FALLING
-
-  pinMode(4, OUTPUT);  // Blue Pin
-  pinMode(5, OUTPUT);  // Green Pin
-  pinMode(6, OUTPUT);  // brightness
-  pinMode(7, OUTPUT);  // Red Pin
-  analogWrite(4, 0);
-  analogWrite(5, 0);
-  //digitalWrite(6, HIGH);
-  analogWrite(6, 255);
-  analogWrite(7, 0);
 
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
@@ -114,42 +97,24 @@ void setup() {
   delay(200);
 
 }
-void flashLed(int id){
-  if(showLeds){
-    analogWrite(id, max(255, ledbrightness += ledbrightness));
-    digitalWrite(LED_BUILTIN, toggle = !toggle ? LOW : HIGH);
-  }
+void flashLed(){
+  toggle = true;
 }
 void loop() {
   Usb.Task();
   
   unsigned long currentMillis = millis();
-  switch(showLeds){
-    case false:
-      if (currentMillis - previousMillis >= 3000) {
-        previousMillis = currentMillis;
-        showLeds = true;
-        //digitalWrite(6, LOW);
-        analogWrite(6, 128);
-      }
-    break;
-    case true:
-      if (currentMillis - previousMillis >= 100) {
-        previousMillis = currentMillis;
-        analogWrite(7, pwmValue = pwmValue + pwm);
-        if (pwmValue <= 0 || pwmValue >= 254) {
-          pwm *= -1;
-        }
-        analogWrite(5, 0);
-        analogWrite(4, 0);
-        ledbrightness = 32;
-      }
-    break;
+  if(currentMillis - previousMillis >= 10){
+    previousMillis = currentMillis;
+    digitalWrite(LED_BUILTIN, toggle ? HIGH : LOW);
+    if(toggle){
+      toggle = false;
+    }
   }
 
   for (int c = 0; c < MIDI_SERIAL_DEVICE_COUNT; c++) {
     if (list_devices_serial[c]->read()) {
-      flashLed(4);
+      flashLed();
       midi::MidiType t = list_devices_serial[c]->getType();
       midi::DataByte d1 = list_devices_serial[c]->getData1();
       midi::DataByte d2 = list_devices_serial[c]->getData2();
@@ -160,7 +125,7 @@ void loop() {
   }
   for (int c = 0; c < MIDI_UHS2_DEVICE_COUNT; c++) {
     if (list_devices_uhs2[c]->read()) {
-      flashLed(5);
+      flashLed();
       midi::MidiType t = list_devices_uhs2[c]->getType();
       midi::DataByte d1 = list_devices_uhs2[c]->getData1();
       midi::DataByte d2 = list_devices_uhs2[c]->getData2();
