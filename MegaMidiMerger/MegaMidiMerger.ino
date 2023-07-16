@@ -37,7 +37,7 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
   &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9
 };
 
-#define EURORACK_TRIGGER_INTERRUPT_PIN 2
+#define EURORACK_TRIGGER_INTERRUPT_PIN 3
 
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
