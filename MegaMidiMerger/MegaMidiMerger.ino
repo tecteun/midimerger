@@ -39,7 +39,6 @@ midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DE
 
 #define EURORACK_TRIGGER_INTERRUPT_PIN 3
 
-
 unsigned long previousMillis = 0;  // will store last time LED was updated
 
 bool toggle = false;
@@ -79,17 +78,19 @@ void send_serial_sysex(midi::DataByte d1, midi::DataByte d2, const byte* sysexAr
 }
 
 void eurorack_trigger() {
-  send_serial(midi::NoteOn, 42, 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
-  send_uhs(midi::NoteOn, 42, 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
-  delay(1000);                            // Wait for a second
-  send_serial(midi::NoteOff, 42, 0, 1);   // Send a NoteOff (pitch 42, velo 0 on channel 1)
-  send_uhs(midi::NoteOff, 42, 0, 1);      // Send a NoteOff (pitch 42, velo 0 on channel 1)
+  flashLed();
+  send_serial(midi::NoteOn, random(0, 255), 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
+  send_uhs(midi::NoteOn, random(0, 255), 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
+  //send_serial(midi::NoteOff, 42, 0, 1);   // Send a NoteOff (pitch 42, velo 0 on channel 1)
+  //send_uhs(midi::NoteOff, 42, 0, 1);      // Send a NoteOff (pitch 42, velo 0 on channel 1)
 }
 
 void setup() {
+  // random
+  randomSeed(analogRead(0));
   // interrupts
   pinMode(EURORACK_TRIGGER_INTERRUPT_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(EURORACK_TRIGGER_INTERRUPT_PIN), eurorack_trigger, CHANGE);  //LOW RISING FALLING
+  attachInterrupt(digitalPinToInterrupt(EURORACK_TRIGGER_INTERRUPT_PIN), eurorack_trigger, RISING);  //CHANGE LOW RISING FALLING
 
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
