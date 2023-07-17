@@ -4,6 +4,8 @@
 //https://github.com/TheKikGen/USBMidiKliK
 //send sysex F0 77 77 77 09 F7 to reset interface to serial mode, to flash
 
+#define MIDI_MAX_ENDPOINTS 5
+
 // @see https://github.com/diyelectromusic/sdemp/blob/HEAD/src/SDEMP/ArduinoMultiMIDIMerge2/ArduinoMultiMIDIMerge2.ino
 USB Usb;
 // support one hub, four midi devices
@@ -132,7 +134,6 @@ void loop() {
   for (int c = 0; c < MIDI_SERIAL_DEVICE_COUNT; c++) {
     if (list_devices_serial[c]->read()) {
       flashLed();
-
       midi::MidiType t = list_devices_serial[c]->getType();
       if (t != midi::SystemExclusive) {
         midi::DataByte d1 = list_devices_serial[c]->getData1();
@@ -160,11 +161,13 @@ void loop() {
         send_serial(t, d1, d2, ch);
         send_uhs(t, d1, d2, ch, c);  // do not send to self, no passthrough
       } else {
+        /*
         byte* sysexArray = list_devices_uhs2[c]->getSysExArray();
         midi::DataByte d1 = list_devices_uhs2[c]->getData1();
         midi::DataByte d2 = list_devices_uhs2[c]->getData2();
         send_serial_sysex(d1, d2, sysexArray);
         send_uhs_sysex(d1, d2, sysexArray, c);  // do not send to self, no passthrough
+        */
       }
     }
   }
