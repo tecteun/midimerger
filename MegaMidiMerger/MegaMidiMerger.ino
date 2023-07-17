@@ -152,13 +152,11 @@ void loop() {
         send_serial(t, d1, d2, ch, c);  // do not send to self, no passthrough
         send_uhs(t, d1, d2, ch);
       } else {
-        
         byte* sysexArray = list_devices_serial[c]->getSysExArray();
         midi::DataByte d1 = list_devices_serial[c]->getData1();
         midi::DataByte d2 = list_devices_serial[c]->getData2();
         send_serial_sysex(d1, d2, sysexArray, c);  // do not send to self, no passthrough
         send_uhs_sysex(d1, d2, sysexArray);
-        
       }
     }
   }
@@ -173,13 +171,11 @@ void loop() {
         send_serial(t, d1, d2, ch);
         send_uhs(t, d1, d2, ch, c);  // do not send to self, no passthrough
       } else {
-        /*
         byte* sysexArray = list_devices_uhs2[c]->getSysExArray();
         midi::DataByte d1 = list_devices_uhs2[c]->getData1();
         midi::DataByte d2 = list_devices_uhs2[c]->getData2();
         send_serial_sysex(d1, d2, sysexArray);
         send_uhs_sysex(d1, d2, sysexArray, c);  // do not send to self, no passthrough
-        */
       }
     }
   }
