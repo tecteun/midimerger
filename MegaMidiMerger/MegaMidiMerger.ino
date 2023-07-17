@@ -3,9 +3,6 @@
 #include <usbhub.h>
 //https://github.com/TheKikGen/USBMidiKliK
 //send sysex F0 77 77 77 09 F7 to reset interface to serial mode, to flash
-
-
-
 // @see https://github.com/diyelectromusic/sdemp/blob/HEAD/src/SDEMP/ArduinoMultiMIDIMerge2/ArduinoMultiMIDIMerge2.ino
 USB Usb;
 // support one hub, four midi devices
@@ -17,13 +14,15 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb1);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb2);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb3);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb4);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb5);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb6);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb7);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb8);
-UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb9);
-#define MIDI_UHS2_DEVICE_COUNT 10
+UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb4);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb5);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb6);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb7);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb8);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb9);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb10);
+UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb11);
+#define MIDI_UHS2_DEVICE_COUNT 12
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, midiA);
@@ -37,7 +36,7 @@ midi::MidiInterface<midi::SerialMIDI<HardwareSerial>>* list_devices_serial[MIDI_
 };
 
 midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DEVICE_COUNT] = {
-  &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9
+  &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9, &midiUsb10, &midiUsb11
 };
 
 #define EURORACK_TRIGGER_INTERRUPT_PIN 3
@@ -78,12 +77,18 @@ void send_serial_sysex(midi::DataByte d1, midi::DataByte d2, const byte* sysexAr
   }
 }
 
+static unsigned long last_interrupt_time = 0;
 void eurorack_trigger() {
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time > 10) 
+  {
+    send_serial(midi::NoteOn, random(0, 255), 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
+    send_uhs(midi::NoteOn, random(0, 255), 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
+    //send_serial(midi::NoteOff, 42, 0, 1);   // Send a NoteOff (pitch 42, velo 0 on channel 1)
+    //send_uhs(midi::NoteOff, 42, 0, 1);      // Send a NoteOff (pitch 42, velo 0 on channel 1)
+  }
+  last_interrupt_time = interrupt_time;
   flashLed();
-  send_serial(midi::NoteOn, random(0, 255), 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
-  send_uhs(midi::NoteOn, random(0, 255), 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
-  //send_serial(midi::NoteOff, 42, 0, 1);   // Send a NoteOff (pitch 42, velo 0 on channel 1)
-  //send_uhs(midi::NoteOff, 42, 0, 1);      // Send a NoteOff (pitch 42, velo 0 on channel 1)
 }
 
 void setup() {
@@ -130,6 +135,8 @@ void flashLed() {
   toggle = true;
 }
 void loop() {
+  //Usb.vbusPower(vbus_on);
+  //Usb.busprobe();
   Usb.Task();
 
   unsigned long currentMillis = millis();
