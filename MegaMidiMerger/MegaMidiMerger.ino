@@ -4,7 +4,7 @@
 //https://github.com/TheKikGen/USBMidiKliK
 //send sysex F0 77 77 77 09 F7 to reset interface to serial mode, to flash
 
-#define MIDI_MAX_ENDPOINTS 5
+
 
 // @see https://github.com/diyelectromusic/sdemp/blob/HEAD/src/SDEMP/ArduinoMultiMIDIMerge2/ArduinoMultiMIDIMerge2.ino
 USB Usb;
@@ -27,12 +27,13 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb9);
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, midiA);
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, midiB);
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial3, midiC);
-#define MIDI_SERIAL_DEVICE_COUNT 4
+//disable when not connected, introduces noise
+//MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, midiB);
+//MIDI_CREATE_INSTANCE(HardwareSerial, Serial3, midiC);
+#define MIDI_SERIAL_DEVICE_COUNT 2
 
 midi::MidiInterface<midi::SerialMIDI<HardwareSerial>>* list_devices_serial[MIDI_SERIAL_DEVICE_COUNT] = {
-  &midiUsbMidiKlik, &midiA, &midiB, &midiC
+  &midiUsbMidiKlik, &midiA //, &midiB, &midiC
 };
 
 midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DEVICE_COUNT] = {
@@ -60,8 +61,6 @@ void send_uhs_sysex(midi::DataByte d1, midi::DataByte d2, const byte* sysexArray
     }
   }
 }
-
-
 void send_serial(midi::MidiType t, midi::DataByte d1, midi::DataByte d2, midi::Channel ch, int exclude = -1) {
   for (int i = 0; i < MIDI_SERIAL_DEVICE_COUNT; i++) {
     if (exclude != i) {  // do not send to self, no passthrough
@@ -97,6 +96,17 @@ void setup() {
   // Make Arduino transparent for serial communications from and to USB(client-hid)
   pinMode(0, INPUT);  // Arduino RX - ATMEGA8U2 TX
   pinMode(1, INPUT);  // Arduino TX - ATMEGA8U2 RX
+
+  pinMode(18, INPUT);         // Arduino Mega TX1 
+  pinMode(19, INPUT_PULLUP);  // Arduino Mega RX1
+
+  // prevent noise, even when not connected
+  pinMode(16, INPUT);         // Arduino Mega TX2 
+  pinMode(17, INPUT_PULLUP);  // Arduino Mega RX2
+  
+  pinMode(14, INPUT);         // Arduino Mega TX2 
+  pinMode(15, INPUT_PULLUP);  // Arduino Mega RX2
+  
   Serial.begin(31250);
   pinMode(LED_BUILTIN, OUTPUT);
   // Initiate MIDI communications, listen to all channels
@@ -142,11 +152,13 @@ void loop() {
         send_serial(t, d1, d2, ch, c);  // do not send to self, no passthrough
         send_uhs(t, d1, d2, ch);
       } else {
+        
         byte* sysexArray = list_devices_serial[c]->getSysExArray();
         midi::DataByte d1 = list_devices_serial[c]->getData1();
         midi::DataByte d2 = list_devices_serial[c]->getData2();
         send_serial_sysex(d1, d2, sysexArray, c);  // do not send to self, no passthrough
         send_uhs_sysex(d1, d2, sysexArray);
+        
       }
     }
   }
