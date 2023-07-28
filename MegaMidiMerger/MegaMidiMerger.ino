@@ -7,9 +7,6 @@
 USB Usb;
 // support one hub, four midi devices
 USBHub Hub(&Usb);
-USBHub Hub1(&Usb);
-USBHub Hub2(&Usb);
-USBHub Hub3(&Usb);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb1);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb2);
@@ -22,6 +19,7 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb8);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb9);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb10);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb11);
+
 #define MIDI_UHS2_DEVICE_COUNT 12
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
@@ -80,15 +78,16 @@ void send_serial_sysex(midi::DataByte d1, midi::DataByte d2, const byte* sysexAr
 static unsigned long last_interrupt_time = 0;
 void eurorack_trigger() {
   unsigned long interrupt_time = millis();
-  if (interrupt_time - last_interrupt_time > 10) 
+  if (interrupt_time - last_interrupt_time > 200) 
   {
     send_serial(midi::NoteOn, random(0, 255), 127, 1);  // Send a Note (pitch 42, velo 127 on channel 1)
     send_uhs(midi::NoteOn, random(0, 255), 127, 1);     // Send a Note (pitch 42, velo 127 on channel 1)
     //send_serial(midi::NoteOff, 42, 0, 1);   // Send a NoteOff (pitch 42, velo 0 on channel 1)
     //send_uhs(midi::NoteOff, 42, 0, 1);      // Send a NoteOff (pitch 42, velo 0 on channel 1)
+    flashLed();
   }
   last_interrupt_time = interrupt_time;
-  flashLed();
+  
 }
 
 void setup() {
@@ -104,7 +103,6 @@ void setup() {
 
   pinMode(18, INPUT);         // Arduino Mega TX1 
   pinMode(19, INPUT_PULLUP);  // Arduino Mega RX1
-
   // prevent noise, even when not connected
   pinMode(16, INPUT);         // Arduino Mega TX2 
   pinMode(17, INPUT_PULLUP);  // Arduino Mega RX2
@@ -136,6 +134,7 @@ void flashLed() {
 }
 void loop() {
   //Usb.vbusPower(vbus_on);
+  //using a fixed library branch: https://github.com/tmk/USB_Host_Shield_2.0/tree/upstream_fix_busprobe
   //Usb.busprobe();
   Usb.Task();
 
