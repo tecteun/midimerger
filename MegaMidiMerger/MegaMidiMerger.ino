@@ -11,6 +11,7 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb1);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb2);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 0, midiUsb3);
+/*
 UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb4);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb5);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 1, midiUsb6);
@@ -19,8 +20,8 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb8);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb9);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb10);
 UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb11);
-
-#define MIDI_UHS2_DEVICE_COUNT 12
+*/
+#define MIDI_UHS2_DEVICE_COUNT 4
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, midiA);
@@ -34,7 +35,7 @@ midi::MidiInterface<midi::SerialMIDI<HardwareSerial>>* list_devices_serial[MIDI_
 };
 
 midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DEVICE_COUNT] = {
-  &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9, &midiUsb10, &midiUsb11
+  &midiUsb, &midiUsb1, &midiUsb2, &midiUsb3 //, &midiUsb4, &midiUsb5, &midiUsb6, &midiUsb7, &midiUsb8, &midiUsb9, &midiUsb10, &midiUsb11
 };
 
 #define EURORACK_TRIGGER_INTERRUPT_PIN 3
@@ -128,14 +129,14 @@ void setup() {
       ;  //halt
   }      //if (Usb.Init() == -1...
   delay(200);
+  Usb.vbusPower(vbus_off);
 }
 void flashLed() {
   toggle = true;
 }
 void loop() {
-  //Usb.vbusPower(vbus_on);
   //using a fixed library branch: https://github.com/tmk/USB_Host_Shield_2.0/tree/upstream_fix_busprobe
-  //Usb.busprobe();
+  Usb.busprobe();
   Usb.Task();
 
   unsigned long currentMillis = millis();
