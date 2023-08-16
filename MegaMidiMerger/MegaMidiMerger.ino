@@ -26,12 +26,12 @@ UHS2MIDI_CREATE_INSTANCE(&Usb, 2, midiUsb11);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, midiUsbMidiKlik);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, midiA);
 //disable when not connected, introduces noise
-//MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, midiB);
-//MIDI_CREATE_INSTANCE(HardwareSerial, Serial3, midiC);
-#define MIDI_SERIAL_DEVICE_COUNT 2
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, midiB);
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial3, midiC);
+#define MIDI_SERIAL_DEVICE_COUNT 4
 
 midi::MidiInterface<midi::SerialMIDI<HardwareSerial>>* list_devices_serial[MIDI_SERIAL_DEVICE_COUNT] = {
-  &midiUsbMidiKlik, &midiA //, &midiB, &midiC
+  &midiUsbMidiKlik, &midiA, &midiB, &midiC
 };
 
 midi::MidiInterface<uhs2Midi::uhs2MidiTransport>* list_devices_uhs2[MIDI_UHS2_DEVICE_COUNT] = {
